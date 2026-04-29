@@ -1,0 +1,1352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CarbonScore v3</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f7f8f5;
+      --surface: #ffffff;
+      --surface2: #f0f2ed;
+      --border: #e4e8e2;
+      --green: #1a9e5c;
+      --green-dark: #137844;
+      --green-light: #e8f5ee;
+      --yellow: #e8a020;
+      --yellow-light: #fef6e4;
+      --red: #d94040;
+      --blue: #3278c6;
+      --ink: #111a14;
+      --muted: #6f8175;
+      --radius: 16px;
+      --pill: 999px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      overflow: hidden;
+      font-family: "DM Sans", sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    button, input { font: inherit; }
+
+    #bg-video,
+    .bg-fallback,
+    #bg-overlay {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    #bg-video {
+      object-fit: cover;
+      z-index: 0;
+      opacity: 0.16;
+    }
+
+    .bg-fallback {
+      z-index: 0;
+      background:
+        radial-gradient(circle at 20% 15%, rgba(50, 120, 198, 0.22), transparent 28%),
+        radial-gradient(circle at 78% 72%, rgba(26, 158, 92, 0.26), transparent 34%),
+        linear-gradient(135deg, #123827, #eff4ec 58%, #f8efd9);
+      animation: breathe 8s ease-in-out infinite;
+    }
+
+    #bg-overlay {
+      z-index: 1;
+      background: rgba(247, 248, 245, 0.83);
+    }
+
+    @keyframes breathe {
+      0%, 100% { opacity: 0.9; }
+      50% { opacity: 1; }
+    }
+
+    .particle {
+      position: fixed;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--green);
+      opacity: 0.15;
+      z-index: 2;
+      animation: drift linear infinite;
+    }
+
+    @keyframes drift {
+      0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+      10%, 90% { opacity: 0.15; }
+      100% { transform: translateY(-10vh) translateX(20px); opacity: 0; }
+    }
+
+    .app-shell {
+      position: relative;
+      z-index: 10;
+      max-width: 430px;
+      height: 100vh;
+      margin: 0 auto;
+      background: rgba(247, 248, 245, 0.72);
+      box-shadow: 0 0 0 1px rgba(228, 232, 226, 0.5);
+    }
+
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: slideIn 0.36s ease forwards;
+    }
+
+    .screen.active { display: flex; }
+
+    @keyframes slideIn {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    @keyframes leafDrift {
+      0% { transform: translateX(0) translateY(0) rotate(0deg); }
+      100% { transform: translateX(18px) translateY(-18px) rotate(180deg); }
+    }
+
+    @keyframes cfFall {
+      0% { transform: translateY(-4vh) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(108vh) rotate(600deg); opacity: 0; }
+    }
+
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-height: 68px;
+      padding: 14px 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      z-index: 100;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: "Syne", sans-serif;
+      font-weight: 800;
+      font-size: 20px;
+      color: var(--green);
+      white-space: nowrap;
+    }
+
+    .brand-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      background: var(--surface2);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: transform 0.18s, background 0.18s;
+    }
+
+    .icon-btn:hover { background: var(--green-light); transform: translateY(-1px); }
+
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 18px 16px 94px;
+    }
+
+    .bottom-nav {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 180;
+      display: flex;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+    }
+
+    .nav-item {
+      flex: 1;
+      min-width: 0;
+      padding: 10px 4px 13px;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      display: grid;
+      gap: 3px;
+      justify-items: center;
+      font-size: 11px;
+      line-height: 1.1;
+      position: relative;
+    }
+
+    .nav-item .nav-icon { font-size: 21px; line-height: 1; }
+
+    .nav-item.active {
+      color: var(--green);
+      font-weight: 700;
+    }
+
+    .nav-item.active::after {
+      content: "";
+      position: absolute;
+      bottom: 4px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+
+    .card, .btn, .habit-card, .product-card {
+      transition: transform 0.2s cubic-bezier(.34,1.4,.64,1), box-shadow 0.2s;
+      transform-style: preserve-3d;
+    }
+
+    .card, .habit-card, .product-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: 0 5px 16px rgba(17, 26, 20, 0.07);
+    }
+
+    .card:hover, .habit-card:hover, .product-card:hover, .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px rgba(26, 158, 92, 0.18);
+    }
+
+    .btn {
+      border: 0;
+      border-radius: var(--pill);
+      min-height: 48px;
+      padding: 12px 18px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-weight: 700;
+    }
+
+    .btn-primary {
+      color: #fff;
+      background: linear-gradient(135deg, var(--green), var(--green-dark));
+      box-shadow: 0 7px 22px rgba(26, 158, 92, 0.34);
+    }
+
+    .btn-secondary {
+      color: var(--green-dark);
+      background: var(--green-light);
+    }
+
+    .btn-muted {
+      color: var(--ink);
+      background: var(--surface2);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      min-height: 36px;
+      padding: 7px 11px;
+      border-radius: var(--pill);
+      background: var(--yellow-light);
+      color: #a56706;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .hero-card {
+      position: relative;
+      overflow: hidden;
+      color: white;
+      border: 0;
+      background:
+        radial-gradient(circle at 86% 25%, rgba(255, 255, 255, 0.22), transparent 26%),
+        linear-gradient(135deg, var(--green), var(--green-dark));
+    }
+
+    .hero-card .pill {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    .score {
+      font-family: "Syne", sans-serif;
+      font-size: 58px;
+      line-height: 1;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .muted { color: var(--muted); }
+    .green { color: var(--green); }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .stack { display: grid; gap: 14px; }
+
+    .metric-card {
+      text-align: center;
+      padding: 16px 10px;
+    }
+
+    .metric-card strong {
+      display: block;
+      font-size: 22px;
+      margin: 4px 0;
+    }
+
+    .progress-bar {
+      height: 9px;
+      overflow: hidden;
+      border-radius: 6px;
+      background: var(--surface2);
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--green), #45bc75);
+      transition: width 0.65s ease;
+    }
+
+    .habit-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .habit-card {
+      position: relative;
+      min-height: 134px;
+      cursor: pointer;
+    }
+
+    .habit-card.done {
+      border-color: var(--green);
+      background: var(--green-light);
+    }
+
+    .habit-card.done::after {
+      content: "✓";
+      position: absolute;
+      right: 12px;
+      top: 12px;
+      width: 25px;
+      height: 25px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      background: var(--green);
+      font-weight: 800;
+    }
+
+    .screen-title {
+      font-family: "Syne", sans-serif;
+      font-size: 28px;
+      margin-bottom: 4px;
+      letter-spacing: 0;
+    }
+
+    .challenge, .purchase-row {
+      display: grid;
+      gap: 12px;
+    }
+
+    .challenge-top, .product-top, .purchase-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .product-card {
+      display: grid;
+      gap: 13px;
+    }
+
+    .product-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: var(--surface2);
+      display: grid;
+      place-items: center;
+      font-size: 27px;
+      flex: 0 0 auto;
+    }
+
+    .category-tabs {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+
+    .tab {
+      border: 1px solid var(--border);
+      border-radius: var(--pill);
+      background: var(--surface);
+      padding: 9px 13px;
+      color: var(--muted);
+      cursor: pointer;
+      white-space: nowrap;
+      font-weight: 700;
+    }
+
+    .tab.active {
+      border-color: var(--green);
+      background: var(--green-light);
+      color: var(--green-dark);
+    }
+
+    #toast {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      z-index: 1000;
+      width: min(360px, calc(100vw - 32px));
+      padding: 14px 18px;
+      border-radius: var(--pill);
+      color: white;
+      text-align: center;
+      font-weight: 700;
+      transform: translateX(-50%) translateY(-120%);
+      transition: transform 0.28s ease;
+    }
+
+    #toast.show { transform: translateX(-50%) translateY(0); }
+    #toast.success { background: var(--green); }
+    #toast.info { background: var(--yellow); }
+    #toast.error { background: var(--red); }
+
+    #drawer-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 498;
+      background: rgba(0, 0, 0, 0.42);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.24s;
+    }
+
+    #drawer-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    #drawer {
+      position: fixed;
+      top: 0;
+      right: min(-290px, -80vw);
+      z-index: 499;
+      width: min(290px, 80vw);
+      height: 100%;
+      background: var(--surface);
+      box-shadow: -8px 0 28px rgba(0, 0, 0, 0.14);
+      transition: right 0.26s ease;
+    }
+
+    #drawer.open { right: 0; }
+
+    .drawer-header {
+      min-height: 62px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .user-avatar {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 12px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, var(--green), var(--blue));
+      border: 4px solid var(--green-light);
+      color: white;
+      font-size: 28px;
+    }
+
+    .drawer-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 17px 18px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+    }
+
+    .drawer-item:hover { background: var(--surface2); }
+
+    #camera-screen {
+      background: #050805;
+      color: #fff;
+    }
+
+    #camera-video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      background: linear-gradient(135deg, #17251c, #24382b);
+    }
+
+    .camera-overlay {
+      position: relative;
+      z-index: 2;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: rgba(0, 0, 0, 0.22);
+    }
+
+    .guide-box {
+      width: 214px;
+      height: 214px;
+      border: 3px dashed rgba(255, 255, 255, 0.9);
+      border-radius: 18px;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .record-btn {
+      width: 76px;
+      height: 76px;
+      margin: 0 auto 28px;
+      border: 5px solid #fff;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.18);
+      cursor: pointer;
+      transition: all 0.18s;
+    }
+
+    .record-btn.recording {
+      border-color: var(--red);
+      background: var(--red);
+      box-shadow: 0 0 28px rgba(217, 64, 64, 0.62);
+      transform: scale(0.86);
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.72);
+    }
+
+    .modal.show { display: flex; }
+
+    .modal-content {
+      width: min(390px, 100%);
+      max-height: 90vh;
+      overflow: auto;
+      border-radius: var(--radius);
+      background: var(--surface);
+      padding: 20px;
+      text-align: center;
+    }
+
+    .confetti {
+      position: fixed;
+      z-index: 2000;
+      pointer-events: none;
+      top: -12px;
+    }
+
+    .small { font-size: 13px; }
+    .center { text-align: center; }
+
+    @media (max-width: 360px) {
+      .content { padding-left: 12px; padding-right: 12px; }
+      .habit-grid, .grid-2 { gap: 10px; }
+      .card, .habit-card, .product-card { padding: 14px; }
+      .screen-title { font-size: 25px; }
+      .score { font-size: 50px; }
+      .nav-item { font-size: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <video id="bg-video" autoplay muted loop playsinline>
+    <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+  </video>
+  <div class="bg-fallback"></div>
+  <div id="bg-overlay"></div>
+
+  <div class="particle" style="animation-duration: 15s; animation-delay: 0s; left: 10%;"></div>
+  <div class="particle" style="animation-duration: 18s; animation-delay: 2s; left: 20%;"></div>
+  <div class="particle" style="animation-duration: 16s; animation-delay: 4s; left: 35%;"></div>
+  <div class="particle" style="animation-duration: 20s; animation-delay: 1s; left: 50%;"></div>
+  <div class="particle" style="animation-duration: 17s; animation-delay: 3s; left: 65%;"></div>
+  <div class="particle" style="animation-duration: 19s; animation-delay: 5s; left: 75%;"></div>
+  <div class="particle" style="animation-duration: 14s; animation-delay: 6s; left: 85%;"></div>
+  <div class="particle" style="animation-duration: 21s; animation-delay: 7s; left: 15%;"></div>
+
+  <main class="app-shell">
+    <section id="splash" class="screen active">
+      <div style="flex: 1; display: grid; place-items: center; padding: 36px 20px;">
+        <div class="center stack" style="justify-items: center; gap: 26px;">
+          <div style="width: 120px; height: 120px; border-radius: 24px; display: grid; place-items: center; font-size: 64px; background: var(--green-light); box-shadow: 0 0 34px rgba(26,158,92,0.25); animation: float 3s ease-in-out infinite;">🌿</div>
+          <div>
+            <h1 style="font-family: Syne, sans-serif; font-size: 44px; line-height: 1.05; letter-spacing: 0;">CarbonScore</h1>
+            <p class="muted" style="font-size: 18px; max-width: 310px; margin-top: 12px;">Track daily habits. Reduce carbon. Earn coins. Shop eco.</p>
+          </div>
+          <div class="pill" style="background: var(--surface2); color: var(--muted);">For students making greener campuses</div>
+          <button class="btn btn-primary" onclick="startApp()" style="width: min(280px, 100%); font-size: 18px;">Get Started <span aria-hidden="true">→</span></button>
+          <p class="muted small">No sign-in required for demo</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="home" class="screen">
+      <div class="top-bar">
+        <div class="brand"><span class="brand-dot"></span>CarbonScore</div>
+        <div class="top-actions">
+          <div class="pill" id="global-coins">🪙 50</div>
+          <button class="icon-btn" id="mute-btn" type="button" aria-label="Toggle sound">🔊</button>
+          <button class="icon-btn" type="button" onclick="toggleDrawer()" aria-label="Open menu">☰</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="card hero-card" style="margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: start; gap: 16px;">
+            <div>
+              <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">Today's Green Score</div>
+              <div class="score" id="score-display">0</div>
+              <div style="font-size: 16px; opacity: 0.92; margin-top: 8px;">Keep going. Your small wins are adding up.</div>
+            </div>
+            <div class="pill">🪙 <span id="hero-coins">50</span></div>
+          </div>
+          <div style="position: absolute; right: 22px; bottom: 18px; font-size: 32px; opacity: 0.32; animation: leafDrift 4s linear infinite;">🍃</div>
+        </div>
+
+        <div class="grid-2" style="margin-bottom: 16px;">
+          <div class="card metric-card">🚶<strong id="steps-display">0</strong><span class="muted small">Steps</span></div>
+          <div class="card metric-card">📋<strong id="habits-display">0/7</strong><span class="muted small">Habits</span></div>
+          <div class="card metric-card">♻️<strong id="plastic-display">0</strong><span class="muted small">Plastics</span></div>
+          <div class="card metric-card">🔥<strong id="streak-display">1</strong><span class="muted small">Streak</span></div>
+        </div>
+
+        <div class="card stack" style="margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 14px;">
+            <div>
+              <div style="font-size: 23px; font-weight: 700;">🚶 <span id="step-count">0</span> steps</div>
+              <div class="green">+<span id="step-coins-display">0</span> coins earned</div>
+            </div>
+            <div class="pill">🪙 <span id="step-coins">0</span></div>
+          </div>
+          <div class="small muted">Goal: 5,000 steps</div>
+          <div class="progress-bar"><div class="progress-fill" id="step-progress"></div></div>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; font-size: 13px;">
+            <div>Distance<br><strong id="distance">0 km</strong></div>
+            <div>Calories<br><strong id="calories">0 kcal</strong></div>
+            <div>CO2 Saved<br><strong id="co2-steps">0g</strong></div>
+          </div>
+          <button class="btn btn-primary" onclick="addSteps()">+ Add 500 Steps</button>
+        </div>
+
+        <div class="card" style="display: flex; align-items: center; gap: 16px; margin-bottom: 16px; background: var(--green-light); cursor: pointer;" onclick="showCamera()">
+          <div style="font-size: 32px;">♻️</div>
+          <div style="flex: 1;">
+            <strong>Plastic Disposal Tracker</strong>
+            <div class="small green">+25 coins per verified disposal</div>
+          </div>
+          <div style="font-size: 20px;">→</div>
+        </div>
+
+        <div class="habit-grid" id="habit-grid"></div>
+      </div>
+      <nav class="bottom-nav" aria-label="Main navigation"></nav>
+    </section>
+
+    <section id="challenges" class="screen">
+      <div class="top-bar"></div>
+      <div class="content stack">
+        <div>
+          <h2 class="screen-title">Challenges</h2>
+          <p class="muted">Weekly goals with bonus coins.</p>
+        </div>
+        <div id="challenge-list" class="stack"></div>
+      </div>
+      <nav class="bottom-nav" aria-label="Main navigation"></nav>
+    </section>
+
+    <section id="market" class="screen">
+      <div class="top-bar"></div>
+      <div class="content stack">
+        <div style="display: flex; justify-content: space-between; align-items: end; gap: 14px;">
+          <div>
+            <h2 class="screen-title">Eco Market</h2>
+            <p class="muted">Spend coins on student-friendly eco picks.</p>
+          </div>
+          <div class="pill">🪙 <span id="market-coins">50</span></div>
+        </div>
+        <div class="category-tabs" id="category-tabs"></div>
+        <div id="product-list" class="stack"></div>
+      </div>
+      <nav class="bottom-nav" aria-label="Main navigation"></nav>
+    </section>
+
+    <section id="profile" class="screen">
+      <div class="top-bar"></div>
+      <div class="content stack">
+        <div class="card center">
+          <div class="user-avatar">🧑</div>
+          <h2 style="font-family: Syne, sans-serif; letter-spacing: 0;">Demo User</h2>
+          <p class="muted">Bengaluru, India</p>
+        </div>
+        <div class="grid-2">
+          <div class="card metric-card">🪙<strong id="profile-life">50</strong><span class="muted small">Lifetime coins</span></div>
+          <div class="card metric-card">🏆<strong id="profile-score">0</strong><span class="muted small">Score</span></div>
+        </div>
+        <div class="card stack">
+          <h3>Badges</h3>
+          <div id="badge-list" class="grid-2"></div>
+        </div>
+        <div class="card stack">
+          <h3>Purchases</h3>
+          <div id="purchase-list" class="stack small muted">No purchases yet.</div>
+        </div>
+      </div>
+      <nav class="bottom-nav" aria-label="Main navigation"></nav>
+    </section>
+
+    <section id="camera" class="screen">
+      <video id="camera-video" autoplay playsinline muted></video>
+      <canvas id="camera-canvas" style="display: none;"></canvas>
+      <div class="camera-overlay">
+        <div style="min-height: 70px; padding: 20px; display: flex; align-items: center; gap: 14px; font-weight: 700;">
+          <button class="icon-btn" type="button" onclick="closeCamera()" aria-label="Close camera" style="background: rgba(255,255,255,0.18); color: white; border-color: rgba(255,255,255,0.4);">←</button>
+          <div>Plastic Disposal</div>
+          <div style="margin-left: auto; font-size: 14px;">+25 coins</div>
+        </div>
+        <div style="flex: 1; display: grid; place-items: center;">
+          <div class="guide-box">Point at plastic being disposed</div>
+        </div>
+        <div class="center" style="padding: 20px;">
+          <div class="small" id="camera-instruction" style="margin-bottom: 12px;">Tap to record disposal</div>
+          <div id="recording-timer" style="display: none; font-size: 18px; font-weight: 700; margin-bottom: 22px;">Recording... 0s</div>
+          <div class="record-btn" id="record-btn" onclick="toggleRecording()"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast"></div>
+  <div id="drawer-overlay" onclick="toggleDrawer(false)"></div>
+  <aside id="drawer" aria-label="Menu">
+    <div class="drawer-header">
+      <button class="icon-btn" type="button" onclick="toggleDrawer(false)" aria-label="Close menu">×</button>
+    </div>
+    <div class="center" style="padding: 20px;">
+      <div class="user-avatar">🧑</div>
+      <div style="font-family: Syne, sans-serif; font-weight: 800; font-size: 20px;">Demo User</div>
+      <div class="muted">Bengaluru, India</div>
+    </div>
+    <div class="drawer-item" onclick="showScreen('home')"><span>🌿</span><span style="flex:1;">My Tracker</span><span>→</span></div>
+    <div class="drawer-item" onclick="showScreen('challenges')"><span>🏆</span><span style="flex:1;">Challenges</span><span>→</span></div>
+    <div class="drawer-item" onclick="showScreen('market')"><span>🛍️</span><span style="flex:1;">Eco Market</span><span>→</span></div>
+    <div class="drawer-item" onclick="showScreen('profile')"><span>👤</span><span style="flex:1;">My Profile</span><span>→</span></div>
+    <div class="drawer-item" onclick="showHowItWorks()"><span>📜</span><span style="flex:1;">How It Works</span><span>→</span></div>
+    <div class="drawer-item" onclick="showMission()"><span>🌍</span><span style="flex:1;">Our Mission</span><span>→</span></div>
+    <div class="drawer-item" onclick="contactUs()"><span>📞</span><span style="flex:1;">Contact Us</span><span>→</span></div>
+    <div class="center small muted" style="padding: 18px; border-top: 1px solid var(--border);">App Version: v3.0</div>
+  </aside>
+  <div class="modal" id="capture-modal"></div>
+
+  <script>
+    const S = {
+      coins: 50,
+      lifetimeCoins: 50,
+      steps: 0,
+      habitsCompleted: 0,
+      plasticCount: 0,
+      streak: 1,
+      score: 0,
+      stepCoins: 0,
+      cart: [],
+      purchases: [],
+      selectedCategory: "all",
+      currentScreen: "splash",
+      cameraStream: null,
+      isRecording: false,
+      recordStart: 0,
+      recordInterval: null,
+      audioContext: null,
+      masterGain: null,
+      muted: false,
+      habits: new Set(),
+      badges: {
+        first: false,
+        recycle: false,
+        coins50: true,
+        coins200: false,
+        score70: false,
+        dist5k: false,
+        shopper: false,
+        green: false,
+        fire: false
+      },
+      challenges: {
+        walker: { title: "Walk 7,000 steps", icon: "🚶", progress: 0, goal: 7000, reward: 150, completed: false },
+        plastic: { title: "Verify 5 disposals", icon: "♻️", progress: 0, goal: 5, reward: 125, completed: false },
+        eater: { title: "Log 5 plant meals", icon: "🥗", progress: 0, goal: 5, reward: 100, completed: false },
+        energy: { title: "Save energy 3 times", icon: "💡", progress: 0, goal: 3, reward: 80, completed: false },
+        champion: { title: "Earn 500 lifetime coins", icon: "🏆", progress: 50, goal: 500, reward: 200, completed: false }
+      }
+    };
+
+    const habits = [
+      { id: 0, icon: "🚰", name: "Reusable bottle", coins: 10, challenge: null },
+      { id: 1, icon: "🛍️", name: "No plastic bag", coins: 10, challenge: null },
+      { id: 2, icon: "🚲", name: "Cycled to class", coins: 15, challenge: null },
+      { id: 3, icon: "💡", name: "Lights off", coins: 8, challenge: "energy" },
+      { id: 4, icon: "🥗", name: "Plant-based meal", coins: 12, challenge: "eater" },
+      { id: 5, icon: "📱", name: "Screen time under 3h", coins: 8, challenge: null },
+      { id: 6, icon: "🌿", name: "Composted waste", coins: 15, challenge: null }
+    ];
+
+    const products = [
+      { id: 1, icon: "🧴", name: "Himalaya Neem Face Wash", brand: "Himalaya", coins: 80, rupees: 129, category: "personal", desc: "Natural neem formula in a recyclable tube." },
+      { id: 2, icon: "🍵", name: "Borosil Steel Tea Infuser", brand: "Borosil", coins: 60, rupees: 99, category: "home", desc: "Food-grade stainless steel. Replaces single-use tea bags." },
+      { id: 3, icon: "📓", name: "Navneet Recycled Notebook", brand: "Navneet", coins: 50, rupees: 79, category: "stationery", desc: "200 pages made with recycled paper." },
+      { id: 4, icon: "🥣", name: "Yoga Bar Oats & Seeds", brand: "Yoga Bar", coins: 90, rupees: 149, category: "food", desc: "No palm oil, packed in kraft paper." },
+      { id: 5, icon: "🪥", name: "Bamboo Toothbrush", brand: "Bare Necessities", coins: 40, rupees: 59, category: "personal", desc: "Biodegradable bamboo handle with BPA-free bristles." },
+      { id: 6, icon: "💧", name: "Beeswax Wraps", brand: "The Better Home", coins: 100, rupees: 199, category: "home", desc: "Reusable wraps that replace cling film." },
+      { id: 7, icon: "✏️", name: "Sprout Seed Pencils", brand: "Sprout", coins: 70, rupees: 119, category: "stationery", desc: "Plantable pencils with herb seeds." },
+      { id: 8, icon: "🫙", name: "Organic Peanut Butter", brand: "Pintola", coins: 85, rupees: 139, category: "food", desc: "Single-ingredient peanut butter in a glass jar." }
+    ];
+
+    const nav = [
+      ["home", "🌿", "Track"],
+      ["challenges", "🏆", "Goals"],
+      ["market", "🛍️", "Shop"],
+      ["camera", "📷", "Recycle"],
+      ["profile", "👤", "Profile"]
+    ];
+
+    document.addEventListener("DOMContentLoaded", () => {
+      initBackground();
+      renderTopBars();
+      renderNavs();
+      renderHabits();
+      renderCategories();
+      updateDisplay();
+      document.getElementById("mute-btn").addEventListener("click", toggleMute);
+    });
+
+    function initBackground() {
+      const video = document.getElementById("bg-video");
+      video.addEventListener("error", () => { video.style.display = "none"; });
+    }
+
+    function renderTopBars() {
+      document.querySelectorAll(".screen:not(#home):not(#splash):not(#camera) .top-bar").forEach(bar => {
+        bar.innerHTML = `
+          <div class="brand"><span class="brand-dot"></span>CarbonScore</div>
+          <div class="top-actions">
+            <div class="pill top-coins">🪙 ${S.coins}</div>
+            <button class="icon-btn" type="button" onclick="toggleDrawer()" aria-label="Open menu">☰</button>
+          </div>
+        `;
+      });
+    }
+
+    function renderNavs() {
+      document.querySelectorAll(".bottom-nav").forEach(holder => {
+        holder.innerHTML = nav.map(([screen, icon, label]) => `
+          <button class="nav-item ${screen === S.currentScreen ? "active" : ""}" type="button" data-screen="${screen}" onclick="${screen === "camera" ? "showCamera()" : `showScreen('${screen}')`}">
+            <span class="nav-icon">${icon}</span><span>${label}</span>
+          </button>
+        `).join("");
+      });
+    }
+
+    function renderHabits() {
+      document.getElementById("habit-grid").innerHTML = habits.map(habit => `
+        <div class="habit-card ${S.habits.has(habit.id) ? "done" : ""}" data-habit="${habit.id}">
+          <div style="font-size: 29px; margin-bottom: 12px;">${habit.icon}</div>
+          <strong>${habit.name}</strong>
+          <div class="green small" style="margin-top: 6px;">+${habit.coins} coins</div>
+        </div>
+      `).join("");
+
+      document.querySelectorAll(".habit-card").forEach(card => {
+        card.addEventListener("click", () => completeHabit(Number(card.dataset.habit)));
+      });
+    }
+
+    function renderCategories() {
+      const categories = [["all", "All"], ["personal", "Personal"], ["home", "Home"], ["stationery", "Stationery"], ["food", "Food"]];
+      document.getElementById("category-tabs").innerHTML = categories.map(([id, label]) => `
+        <button class="tab ${S.selectedCategory === id ? "active" : ""}" onclick="selectCategory('${id}')">${label}</button>
+      `).join("");
+    }
+
+    function startApp() {
+      initAudio();
+      showScreen("home");
+    }
+
+    function showScreen(screen) {
+      if (screen === "camera") {
+        showCamera();
+        return;
+      }
+      closeCamera(false);
+      document.querySelectorAll(".screen").forEach(el => el.classList.remove("active"));
+      document.getElementById(screen).classList.add("active");
+      S.currentScreen = screen;
+      if (screen === "home") renderHome();
+      if (screen === "challenges") renderChallenges();
+      if (screen === "market") renderMarket();
+      if (screen === "profile") renderProfile();
+      renderTopBars();
+      renderNavs();
+      toggleDrawer(false);
+      updateDisplay();
+    }
+
+    function renderHome() {
+      renderHabits();
+      updateStepsDisplay();
+      updateSummary();
+    }
+
+    function updateDisplay() {
+      document.querySelectorAll(".top-coins").forEach(el => { el.textContent = `🪙 ${S.coins}`; });
+      const globalCoins = document.getElementById("global-coins");
+      const heroCoins = document.getElementById("hero-coins");
+      const marketCoins = document.getElementById("market-coins");
+      if (globalCoins) globalCoins.textContent = `🪙 ${S.coins}`;
+      if (heroCoins) heroCoins.textContent = S.coins;
+      if (marketCoins) marketCoins.textContent = S.coins;
+      animateScore();
+      updateSummary();
+      updateChallengeProgress();
+    }
+
+    function animateScore() {
+      const display = document.getElementById("score-display");
+      if (!display) return;
+      const start = Number(display.textContent) || 0;
+      const target = Math.round(S.score);
+      const duration = 500;
+      const startTime = performance.now();
+      function step(time) {
+        const progress = Math.min((time - startTime) / duration, 1);
+        const ease = 1 - Math.pow(1 - progress, 3);
+        display.textContent = Math.floor(start + (target - start) * ease);
+        if (progress < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }
+
+    function updateSummary() {
+      setText("steps-display", S.steps.toLocaleString());
+      setText("habits-display", `${S.habitsCompleted}/7`);
+      setText("plastic-display", S.plasticCount);
+      setText("streak-display", S.streak);
+    }
+
+    function addSteps() {
+      S.steps += 500;
+      const newStepCoins = Math.floor(S.steps / 1000) * 5;
+      if (newStepCoins > S.stepCoins) {
+        const earned = newStepCoins - S.stepCoins;
+        awardCoins(earned, earned * 2);
+        S.stepCoins = newStepCoins;
+        showToast(`+${earned} coins from steps`, "success");
+      }
+      if (S.steps >= 5000 && !S.badges.dist5k) {
+        S.badges.dist5k = true;
+        showToast("5K Runner badge unlocked", "success");
+      }
+      updateStepsDisplay();
+      updateDisplay();
+    }
+
+    function updateStepsDisplay() {
+      setText("step-count", S.steps.toLocaleString());
+      setText("step-coins", S.stepCoins);
+      setText("step-coins-display", S.stepCoins);
+      setText("distance", `${(S.steps * 0.0008).toFixed(1)} km`);
+      setText("calories", `${(S.steps * 0.04).toFixed(0)} kcal`);
+      setText("co2-steps", `${(S.steps * 0.18).toFixed(0)}g`);
+      const progress = Math.min((S.steps / 5000) * 100, 100);
+      const fill = document.getElementById("step-progress");
+      if (fill) fill.style.width = `${progress}%`;
+    }
+
+    function completeHabit(id) {
+      if (S.habits.has(id)) return;
+      const habit = habits.find(item => item.id === id);
+      S.habits.add(id);
+      S.habitsCompleted = S.habits.size;
+      awardCoins(habit.coins, habit.coins * 1.5);
+      if (habit.challenge) S.challenges[habit.challenge].progress += 1;
+      renderHabits();
+      checkBadges();
+      showToast(`${habit.name} complete. +${habit.coins} coins`, "success");
+      updateDisplay();
+    }
+
+    function updateChallengeProgress() {
+      S.challenges.walker.progress = S.steps;
+      S.challenges.champion.progress = S.lifetimeCoins;
+      Object.keys(S.challenges).forEach(key => {
+        const ch = S.challenges[key];
+        if (!ch.completed && ch.progress >= ch.goal) completeChallenge(key);
+      });
+    }
+
+    function completeChallenge(key) {
+      const ch = S.challenges[key];
+      if (ch.completed) return;
+      ch.completed = true;
+      awardCoins(ch.reward, ch.reward * 1.2);
+      showToast(`${ch.title} complete. +${ch.reward} bonus coins`, "success");
+      showConfetti();
+    }
+
+    function renderChallenges() {
+      updateChallengeProgress();
+      document.getElementById("challenge-list").innerHTML = Object.values(S.challenges).map(ch => {
+        const pct = Math.min((ch.progress / ch.goal) * 100, 100);
+        return `
+          <div class="card challenge">
+            <div class="challenge-top">
+              <div class="product-icon">${ch.icon}</div>
+              <div style="flex:1;">
+                <strong>${ch.title}</strong>
+                <div class="small muted">${Math.min(ch.progress, ch.goal).toLocaleString()} / ${ch.goal.toLocaleString()}</div>
+              </div>
+              <div class="pill">+${ch.reward}</div>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+            <div class="small ${ch.completed ? "green" : "muted"}">${ch.completed ? "Completed" : "In progress"}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function selectCategory(category) {
+      S.selectedCategory = category;
+      renderCategories();
+      renderMarket();
+    }
+
+    function renderMarket() {
+      renderCategories();
+      const visible = S.selectedCategory === "all" ? products : products.filter(p => p.category === S.selectedCategory);
+      document.getElementById("product-list").innerHTML = visible.map(product => `
+        <div class="product-card">
+          <div class="product-top">
+            <div class="product-icon">${product.icon}</div>
+            <div style="flex:1; min-width:0;">
+              <strong>${product.name}</strong>
+              <div class="small muted">${product.brand} · ₹${product.rupees}</div>
+            </div>
+            <div class="pill">🪙 ${product.coins}</div>
+          </div>
+          <p class="small muted">${product.desc}</p>
+          <button class="btn ${S.coins >= product.coins ? "btn-primary" : "btn-muted"}" onclick="buyProduct(${product.id})">${S.coins >= product.coins ? "Redeem" : "Need more coins"}</button>
+        </div>
+      `).join("");
+      updateDisplay();
+    }
+
+    function buyProduct(id) {
+      const product = products.find(p => p.id === id);
+      if (S.coins < product.coins) {
+        showToast("Not enough coins yet", "error");
+        return;
+      }
+      S.coins -= product.coins;
+      S.purchases.push(product);
+      S.badges.shopper = true;
+      showToast(`${product.name} redeemed`, "success");
+      showConfetti();
+      renderMarket();
+      updateDisplay();
+    }
+
+    function renderProfile() {
+      setText("profile-life", S.lifetimeCoins);
+      setText("profile-score", Math.round(S.score));
+      const badgeMeta = [
+        ["first", "🌱 First Steps"],
+        ["recycle", "♻️ Recycler"],
+        ["coins50", "🪙 Starter Wallet"],
+        ["coins200", "💰 Coin Hunter"],
+        ["score70", "🏆 Top Scorer"],
+        ["dist5k", "🏃 5K Runner"],
+        ["shopper", "🛍️ Eco Shopper"],
+        ["green", "💚 Green Rider"]
+      ];
+      document.getElementById("badge-list").innerHTML = badgeMeta.map(([key, label]) => `
+        <div class="pill" style="justify-content:start; background:${S.badges[key] ? "var(--green-light)" : "var(--surface2)"}; color:${S.badges[key] ? "var(--green-dark)" : "var(--muted)"};">${label}</div>
+      `).join("");
+      document.getElementById("purchase-list").innerHTML = S.purchases.length
+        ? S.purchases.map(p => `<div class="purchase-row"><span>${p.icon}</span><span style="flex:1;">${p.name}</span><strong>${p.coins}</strong></div>`).join("")
+        : "No purchases yet.";
+    }
+
+    async function showCamera() {
+      document.querySelectorAll(".screen").forEach(el => el.classList.remove("active"));
+      document.getElementById("camera").classList.add("active");
+      S.currentScreen = "camera";
+      renderNavs();
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" } } });
+        document.getElementById("camera-video").srcObject = stream;
+        S.cameraStream = stream;
+      } catch (error) {
+        showToast("Camera unavailable. Demo capture still works.", "info");
+      }
+    }
+
+    function closeCamera(goHome = true) {
+      if (S.cameraStream) {
+        S.cameraStream.getTracks().forEach(track => track.stop());
+        S.cameraStream = null;
+      }
+      const video = document.getElementById("camera-video");
+      if (video) video.srcObject = null;
+      S.isRecording = false;
+      clearInterval(S.recordInterval);
+      resetRecordUi();
+      if (goHome) showScreen("home");
+    }
+
+    function toggleRecording() {
+      if (S.isRecording) return;
+      S.isRecording = true;
+      S.recordStart = Date.now();
+      document.getElementById("record-btn").classList.add("recording");
+      document.getElementById("camera-instruction").style.display = "none";
+      document.getElementById("recording-timer").style.display = "block";
+      S.recordInterval = setInterval(updateRecordingTimer, 1000);
+      setTimeout(captureFrame, 5000);
+    }
+
+    function updateRecordingTimer() {
+      if (!S.isRecording) return;
+      const elapsed = Math.floor((Date.now() - S.recordStart) / 1000);
+      document.getElementById("recording-timer").textContent = `Recording... ${elapsed}s`;
+    }
+
+    function captureFrame() {
+      if (!S.isRecording) return;
+      const video = document.getElementById("camera-video");
+      const canvas = document.getElementById("camera-canvas");
+      const ctx = canvas.getContext("2d");
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      if (video.videoWidth) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      } else {
+        const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+        gradient.addColorStop(0, "#143824");
+        gradient.addColorStop(1, "#65b987");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "white";
+        ctx.font = "700 42px DM Sans";
+        ctx.textAlign = "center";
+        ctx.fillText("Demo disposal captured", canvas.width / 2, canvas.height / 2);
+      }
+      showDisposalPreview(canvas.toDataURL("image/png"));
+    }
+
+    function showDisposalPreview(dataUrl) {
+      S.isRecording = false;
+      clearInterval(S.recordInterval);
+      resetRecordUi();
+      const modal = document.getElementById("capture-modal");
+      modal.className = "modal show";
+      modal.innerHTML = `
+        <div class="modal-content">
+          <img src="${dataUrl}" alt="Captured disposal" style="width:100%; max-height:330px; object-fit:cover; border-radius:12px; margin-bottom:18px;">
+          <h2 style="color:var(--green); margin-bottom:8px;">Disposal Captured</h2>
+          <div style="font-size:18px; color:var(--yellow); margin-bottom:22px; font-weight:700;">+25 Coins Earned</div>
+          <div style="display:flex; gap:12px;">
+            <button class="btn btn-muted" style="flex:1;" onclick="retakePhoto()">Retake</button>
+            <button class="btn btn-primary" style="flex:1;" onclick="confirmDisposal()">Confirm</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function retakePhoto() {
+      document.getElementById("capture-modal").className = "modal";
+    }
+
+    function confirmDisposal() {
+      document.getElementById("capture-modal").className = "modal";
+      S.plasticCount += 1;
+      S.challenges.plastic.progress += 1;
+      S.badges.recycle = true;
+      awardCoins(25, 20);
+      closeCamera();
+      showToast("Plastic disposal verified. +25 coins", "success");
+      showConfetti();
+      updateDisplay();
+    }
+
+    function resetRecordUi() {
+      const button = document.getElementById("record-btn");
+      const instruction = document.getElementById("camera-instruction");
+      const timer = document.getElementById("recording-timer");
+      if (button) button.classList.remove("recording");
+      if (instruction) instruction.style.display = "block";
+      if (timer) {
+        timer.style.display = "none";
+        timer.textContent = "Recording... 0s";
+      }
+    }
+
+    function awardCoins(coins, score) {
+      S.coins += coins;
+      S.lifetimeCoins += coins;
+      S.score += score;
+      checkBadges();
+    }
+
+    function checkBadges() {
+      if (S.habits.size > 0) S.badges.first = true;
+      if (S.coins >= 200 || S.lifetimeCoins >= 200) S.badges.coins200 = true;
+      if (S.score >= 70) S.badges.score70 = true;
+      if (S.habits.size >= 4) S.badges.green = true;
+    }
+
+    function showToast(message, type = "info") {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.className = `show ${type}`;
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => toast.classList.remove("show"), 2800);
+    }
+
+    function toggleDrawer(open = null) {
+      const drawer = document.getElementById("drawer");
+      const overlay = document.getElementById("drawer-overlay");
+      const shouldOpen = open === null ? !drawer.classList.contains("open") : open;
+      drawer.classList.toggle("open", shouldOpen);
+      overlay.classList.toggle("show", shouldOpen);
+    }
+
+    function showHowItWorks() {
+      alert("Coin Economy:\n\nComplete habits to earn coins.\nWalk steps to earn 5 coins per 1,000 steps.\nVerify plastic disposal for 25 coins.\nComplete challenges for bonus coins.\nSpend coins in Eco Market.\n\nLifetime coins track total earned.");
+      toggleDrawer(false);
+    }
+
+    function showMission() {
+      alert("Our Mission:\n\nReduce campus carbon footprints through habit tracking, verified recycling, and rewards for sustainable choices.");
+      toggleDrawer(false);
+    }
+
+    function contactUs() {
+      window.location.href = "mailto:hello@carbonscore.in";
+    }
+
+    function showConfetti() {
+      for (let i = 0; i < 60; i++) {
+        const confetti = document.createElement("div");
+        confetti.className = "confetti";
+        confetti.style.cssText = `
+          left: ${Math.random() * 100}%;
+          width: ${4 + Math.random() * 8}px;
+          height: ${4 + Math.random() * 8}px;
+          background: hsl(${Math.random() * 80 + 70}, 70%, 55%);
+          animation: cfFall ${1.8 + Math.random() * 2}s linear forwards;
+          animation-delay: ${Math.random() * 0.3}s;
+        `;
+        document.body.appendChild(confetti);
+        setTimeout(() => confetti.remove(), 4500);
+      }
+    }
+
+    function initAudio() {
+      if (S.audioContext) return;
+      try {
+        S.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        S.masterGain = S.audioContext.createGain();
+        S.masterGain.gain.value = 0.028;
+        S.masterGain.connect(S.audioContext.destination);
+
+        const osc = S.audioContext.createOscillator();
+        osc.frequency.value = 42;
+        osc.type = "sine";
+        osc.connect(S.masterGain);
+        osc.start();
+      } catch (error) {
+        document.getElementById("mute-btn").style.display = "none";
+      }
+    }
+
+    function toggleMute() {
+      if (!S.audioContext) initAudio();
+      if (!S.masterGain) return;
+      S.muted = !S.muted;
+      S.masterGain.gain.setValueAtTime(S.muted ? 0 : 0.028, S.audioContext.currentTime);
+      document.getElementById("mute-btn").textContent = S.muted ? "🔇" : "🔊";
+    }
+
+    function setText(id, value) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
+    }
+  </script>
+</body>
+</html>
