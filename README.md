@@ -4,6 +4,16 @@ CARBONZY is a lightweight carbon habit tracking demo for university students. It
 
 Live app: https://phk006.github.io/CARBONZY/
 
+## Documentation
+
+- [Project Overview](docs/PROJECT_OVERVIEW.md)
+- [User Guide](docs/USER_GUIDE.md)
+- [Technical Notes](docs/TECHNICAL_NOTES.md)
+- [Deployment Guide](docs/DEPLOYMENT.md)
+- [Roadmap](docs/ROADMAP.md)
+- [Contributing](CONTRIBUTING.md)
+- [Security](SECURITY.md)
+
 ## Features
 
 - Daily green score dashboard
@@ -57,19 +67,8 @@ https://phk006.github.io/CARBONZY/
 
 See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for publishing steps.
 
-## Documentation
-
-- [Project Overview](docs/PROJECT_OVERVIEW.md)
-- [User Guide](docs/USER_GUIDE.md)
-- [Technical Notes](docs/TECHNICAL_NOTES.md)
-- [Deployment Guide](docs/DEPLOYMENT.md)
-- [Roadmap](docs/ROADMAP.md)
-- [Contributing](CONTRIBUTING.md)
-- [Security](SECURITY.md)
-
 ## Status
 
 Current version: prototype/demo.
 
 The app currently stores state in memory only. Refreshing the browser resets demo progress.
-
